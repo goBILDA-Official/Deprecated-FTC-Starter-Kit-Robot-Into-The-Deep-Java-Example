@@ -87,7 +87,11 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
     We can multiply these two ratios together to get our final reduction of ~254.47:1.
     The motor's encoder counts 28 times per rotation. So in total you should see about 7125.16
     counts per rotation of the arm. We divide that by 360 to get the counts per degree. */
-    final double ARM_TICKS_PER_DEGREE = 19.7924893140647; //exact fraction is (194481/9826)
+    final double ARM_TICKS_PER_DEGREE =
+            28 // number of encoder ticks per rotation of the bare motor
+                    * 250047.0 / 4913.0 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
+                    * 100.0 / 20.0 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
+                    * 1/360.0; // we want ticks per degree, not per rotation
 
 
     /* These constants hold the position that the arm is commanded to run to.
@@ -223,8 +227,8 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             If the user presses X, it sets the servo to Off.
             And if the user presses B it reveres the servo to spit out the element.*/
 
-            /* TECH TIP: If Else loops:
-            We're using an else if loop on "gamepad1.x" and "gamepad1.b" just in case
+            /* TECH TIP: If Else statements:
+            We're using an else if statement on "gamepad1.x" and "gamepad1.b" just in case
             multiple buttons are pressed at the same time. If the driver presses both "a" and "x"
             at the same time. "a" will win over and the intake will turn on. If we just had
             three if statements, then it will set the intake servo's power to multiple speeds in
@@ -241,19 +245,8 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             }
 
 
-            /* Here we create a "fudge factor" for the arm position.
-            This allows you to adjust (or "fudge") the arm position slightly with the gamepad triggers.
-            We want the left trigger to move the arm up, and right trigger to move the arm down.
-            So we add the right trigger's variable to the inverse of the left trigger. If you pull
-            both triggers an equal amount, they cancel and leave the arm at zero. But if one is larger
-            than the other, it "wins out". This variable is then multiplied by our FUDGE_FACTOR.
-            The FUDGE_FACTOR is the number of degrees that we can adjust the arm by with this function. */
 
-            armPositionFudgeFactor = FUDGE_FACTOR * (gamepad1.right_trigger + (-gamepad1.left_trigger));
-
-
-
-            /* Here we implement a set of if else loops to set our arm to different scoring positions.
+            /* Here we implement a set of if else statements to set our arm to different scoring positions.
             We check to see if a specific button is pressed, and then move the arm (and sometimes
             intake and wrist) to match. For example, if we click the right bumper we want the robot
             to start collecting. So it moves the armPosition to the ARM_COLLECT position,
@@ -308,10 +301,22 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
                     wrist.setPosition(WRIST_FOLDED_IN);
             }
 
+
+            /* Here we create a "fudge factor" for the arm position.
+            This allows you to adjust (or "fudge") the arm position slightly with the gamepad triggers.
+            We want the left trigger to move the arm up, and right trigger to move the arm down.
+            So we add the right trigger's variable to the inverse of the left trigger. If you pull
+            both triggers an equal amount, they cancel and leave the arm at zero. But if one is larger
+            than the other, it "wins out". This variable is then multiplied by our FUDGE_FACTOR.
+            The FUDGE_FACTOR is the number of degrees that we can adjust the arm by with this function. */
+
+            armPositionFudgeFactor = FUDGE_FACTOR * (gamepad1.right_trigger + (-gamepad1.left_trigger));
+
+
             /* Here we set the target position of our arm to match the variable that was selected
             by the driver.
             We also set the target velocity (speed) the motor runs at, and use setMode to run it.*/
-            armMotor.setTargetPosition((int) (armPosition  +armPositionFudgeFactor));
+            armMotor.setTargetPosition((int) (armPosition + armPositionFudgeFactor));
 
             ((DcMotorEx) armMotor).setVelocity(2100);
             armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
